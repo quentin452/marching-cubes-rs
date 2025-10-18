@@ -1,8 +1,8 @@
 use byteorder::{LittleEndian, WriteBytesExt};
 use evalexpr::{eval_with_context, ContextWithMutableVariables, HashMapContext, Value};
-use fidget::{eval::TracingEvaluator, shape::EzShape, vm::VmShape};
+use fidget::{shape::EzShape, vm::VmShape};
 use nalgebra::{distance, point, vector, Point3, Vector3};
-use rayon::{prelude::*, vec};
+use rayon::prelude::*;
 use std::{collections::HashMap, fs, io::Write, sync::Mutex};
 
 // ==========================================================
@@ -169,7 +169,8 @@ pub fn marching_cubes_fidget(
 
     let edge_table = &EDGE_TABLE.map(|e| format!("{:b}", e));
 
-    let tree = fidget::rhai::eval(expr).expect("Could not evaluate");
+    let engine = fidget::rhai::engine();
+    let tree: fidget::context::Tree = engine.eval(expr).expect("Could not evaluate");
     let shape = VmShape::from(tree);
     let tape = shape.ez_point_tape();
 
@@ -258,7 +259,7 @@ pub fn marching_cubes_evaluated(
 
     let edge_table = &EDGE_TABLE.map(|e| format!("{:b}", e));
 
-    let mut evaluated: HashMap<[usize; 3], f64> = HashMap::new();
+    let _evaluated: HashMap<[usize; 3], f64> = HashMap::new();
 
     let vertices = (0..x_count)
         .into_par_iter()
@@ -445,10 +446,10 @@ fn get_corner_positions(min_point: Point, x: usize, y: usize, z: usize, scale: f
     let p6 = point![xf + scale, yf + scale, zf + scale];
     let p7 = point![xf, yf + scale, zf + scale];
 
-    let mut corner_points = vec![p0, p1, p2, p3, p4, p5, p6, p7];
+    let corner_points = vec![p0, p1, p2, p3, p4, p5, p6, p7];
 
     // Translating points to bounding box space
-    corner_points = corner_points
+    let corner_points = corner_points
         .iter()
         .map(|p| add_points(*p, min_point))
         .collect();
@@ -512,25 +513,21 @@ pub fn get_edge_midpoints(
     corner_values: Vec<f64>,
     threshold: f64,
 ) -> HashMap<usize, Vec<f64>> {
-    let (mut pair, mut edge);
-    let (mut pi, mut pf, mut pe);
-    let (mut vi, mut vf, mut t);
-
     let mut edge_points: HashMap<usize, Vec<f64>> = HashMap::new();
 
     for i in 0..endpoint_indices.len() {
-        pair = endpoint_indices[i];
-        edge = edges_to_use[i];
+        let pair = endpoint_indices[i];
+        let edge = edges_to_use[i];
         if pair.len() > 0 {
             // finding points corresponding to endpoint indices
-            vi = corner_values[pair[0] as usize];
-            vf = corner_values[pair[1] as usize];
-            pi = corner_positions[pair[0] as usize];
-            pf = corner_positions[pair[1] as usize];
+            let vi = corner_values[pair[0] as usize];
+            let vf = corner_values[pair[1] as usize];
+            let pi = corner_positions[pair[0] as usize];
+            let pf = corner_positions[pair[1] as usize];
 
-            t = find_t(vi, vf, threshold);
+            let t = find_t(vi, vf, threshold);
 
-            pe = interpolate_points(pi, pf, t); // midpoint/interpolated point
+            let pe = interpolate_points(pi, pf, t); // midpoint/interpolated point
             edge_points.insert(edge, pe);
         }
     }

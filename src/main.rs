@@ -1,6 +1,6 @@
 use clap::Parser;
 use marching_cubes::{marching_cubes_evaluated, marching_cubes_fidget, Mesh};
-use std::{string, time::Instant};
+use std::time::Instant;
 mod cli;
 use cli::Args;
 
